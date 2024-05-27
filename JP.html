@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash Cards</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #toolbar {
+            margin-bottom: 20px;
+        }
+        #cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-width: 1200px;
+        }
+        .card {
+            width: 150px;
+            height: 200px;
+            /* border: 1px solid #000; */ /* Remove border */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 10px; /* Rounded corners */
+            overflow: hidden; /* Hide overflow content */
+        }
+        .card input {
+            border: none;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            font-size: 24px;
+        }
+        .front {
+            background-color: #add8e6; /* Pastel Blue */
+        }
+        .back {
+            background-color: #ffd700; /* Pastel Yellow */
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar">
+        <button onclick="newFolder()">New</button>
+        <button onclick="saveCards()">Save File</button>
+        <select id="folderList" onchange="loadFolder()">
+            <option value="">List</option>
+        </select>
+        <button onclick="addCard()">Add Card</button>
+        <button onclick="deleteCard()">Delete Card</button>
+        <button onclick="flipAll()">Flip All</button> <!-- New button for flipping all cards -->
+    </div>
+    <div id="cards-container">
+        <!-- Cards will be generated here -->
+    </div>
+
+    <script>
+        const kanjiList = [
+            { kanji: "日", meaning: "ngày" }, { kanji: "一", meaning: "một" }, { kanji: "国", meaning: "quốc gia" },
+            { kanji: "人", meaning: "người" }, { kanji: "年", meaning: "năm" }, { kanji: "大", meaning: "lớn" },
+            { kanji: "十", meaning: "mười" }, { kanji: "二", meaning: "hai" }, { kanji: "本", meaning: "sách" },
+            { kanji: "中", meaning: "giữa" }, { kanji: "長", meaning: "dài" }, { kanji: "出", meaning: "xuất" },
+            { kanji: "三", meaning: "ba" }, { kanji: "時", meaning: "giờ" }, { kanji: "行", meaning: "đi" },
+            { kanji: "見", meaning: "xem" }, { kanji: "月", meaning: "tháng" }, { kanji: "分", meaning: "phút" },
+            { kanji: "後", meaning: "sau" }, { kanji: "前", meaning: "trước" }, { kanji: "生", meaning: "sinh" },
+            { kanji: "五", meaning: "năm" }, { kanji: "間", meaning: "giữa" }, { kanji: "上", meaning: "trên" },
+            { kanji: "東", meaning: "đông" }, { kanji: "四", meaning: "bốn" }, { kanji: "今", meaning: "bây giờ" },
+            { kanji: "金", meaning: "vàng" }, { kanji: "九", meaning: "chín" }, { kanji: "入", meaning: "nhập" },
+            { kanji: "学", meaning: "học" }, { kanji: "円", meaning: "yên" }, { kanji: "子", meaning: "con" },
+            { kanji: "外", meaning: "ngoài" }, { kanji: "八", meaning: "tám" },
+            // Add more Kanji characters here
+            { kanji: "雨", meaning: "mưa" }, { kanji: "火", meaning: "lửa" }, { kanji: "木", meaning: "cây" },
+            { kanji: "土", meaning: "đất" }, { kanji: "犬", meaning: "chó" }, { kanji: "猫", meaning: "mèo" },
+            { kanji: "家", meaning: "nhà" }, { kanji: "食", meaning: "ăn" }, { kanji: "水", meaning: "nước" },
+            { kanji: "車", meaning: "xe" }, { kanji: "鳥", meaning: "chim" }, { kanji: "魚", meaning: "cá" },
+            { kanji: "手", meaning: "tay" }, { kanji: "足", meaning: "chân" }, { kanji: "山", meaning: "núi" },
+            { kanji: "川", meaning: "sông" }, { kanji: "田", meaning: "cánh đồng" }, { kanji: "空", meaning: "bầu trời" },
+            { kanji: "花", meaning: "hoa" }, { kanji: "草", meaning: "cỏ" }, { kanji: "風", meaning: "gió" },
+            { kanji: "雲", meaning: "mây" }, { kanji: "月", meaning: "mặt trăng" }, { kanji: "星", meaning: "ngôi sao" },
+            { kanji: "太陽", meaning: "mặt trời" }, { kanji: "月", meaning: "tháng" }, { kanji: "日", meaning: "ngày" },
+            { kanji: "星期", meaning: "tuần" }, { kanji: "年", meaning: "năm" }, { kanji: "時", meaning: "giờ" },
+            { kanji: "分", meaning: "phút" }, { kanji: "秒", meaning: "giây" }, { kanji: "春", meaning: "mùa xuân" },
+            { kanji: "夏", meaning: "mùa hè" }, { kanji: "秋", meaning: "mùa thu" }, { kanji: "冬", meaning: "mùa đông" },
+            { kanji: "月", meaning: "tháng" }, { kanji: "曜日", meaning: "ngày trong tuần" }, { kanji: "時刻", meaning: "thời gian" },
+            // Add 3 more Kanji characters
+            { kanji: "石", meaning: "đá" }, { kanji: "木", meaning: "cây" }, { kanji: "川", meaning: "sông" }
+        ];
+
+        function createCard(kanji, meaning) {
+            const card = document.createElement('div');
+            card.className = 'card front';
+            card.innerHTML = `
+                <input type="text" value="${kanji}" readonly>
+            `;
+            card.dataset.kanji = kanji;
+            card.dataset.meaning = meaning;
+            card.onclick = () => flipCard(card);
+            document.getElementById('cards-container').appendChild(card);
+        }
+
+        function flipCard(card) {
+            if (card.classList.contains('front')) {
+                card.classList.remove('front');
+                card.classList.add('back');
+                card.querySelector('input').value = card.dataset.meaning;
+            } else {
+                card.classList.remove('back');
+                card.classList.add('front');
+                card.querySelector('input').value = card.dataset.kanji;
+            }
+        }
+
+        function saveCards() {
+            const folderName = prompt('Enter folder name:');
+            if (folderName) {
+                const cards = document.querySelectorAll('.card');
+                const cardData = Array.from(cards).map(card => ({
+                    kanji: card.dataset.kanji,
+                    meaning: card.dataset.meaning,
+                    frontColor: window.getComputedStyle(card).backgroundColor,
+                    backColor: card.classList.contains('back') ? window.getComputedStyle(card).backgroundColor : null
+                }));
+                localStorage.setItem(folderName, JSON.stringify(cardData));
+                updateFolderList();
+            }
+        }
+
+        function addCard() {
+            if (document.querySelectorAll('.card').length < 103) { // Limiting to 103 cards
+                const kanji = prompt('Enter Kanji:');
+                const meaning = prompt('Enter Meaning:');
+                if (kanji && meaning) {
+                    createCard(kanji, meaning);
+                }
+            } else {
+                alert('Maximum 103 cards are allowed.');
+            }
+        }
+
+        function deleteCard() {
+            const cards = document.querySelectorAll('.card');
+            if (cards.length > 0) {
+                const cardToDelete = cards[cards.length - 1];
+                cardToDelete.remove();
+            }
+        }
+
+        function newFolder() {
+            document.getElementById('cards-container').innerHTML = '';
+        }
+
+        function loadFolder() {
+            const folderName = document.getElementById('folderList').value;
+            if (folderName) {
+                const cardData = JSON.parse(localStorage.getItem(folderName));
+                document.getElementById('cards-container').innerHTML = '';
+                cardData.forEach(({ kanji, meaning, frontColor, backColor }) => {
+                    createCard(kanji, meaning);
+                    const card = document.querySelector('.card:last-child');
+                    card.style.backgroundColor = frontColor;
+                    if (backColor) {
+                        card.classList.add('back');
+                        card.classList.remove('front');
+                        card.querySelector('input').value = meaning;
+                        card.style.backgroundColor = backColor;
+                    }
+                });
+            }
+        }
+
+        function updateFolderList() {
+            const folderList = document.getElementById('folderList');
+            folderList.innerHTML = '<option value="">List</option>';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                folderList.innerHTML += `<option value="${key}">${key}</option>`;
+            }
+        }
+
+        function flipAll() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                if (card.classList.contains('front')) {
+                    card.classList.remove('front');
+                    card.classList.add('back');
+                    card.querySelector('input').value = card.dataset.meaning;
+                } else {
+                    card.classList.remove('back');
+                    card.classList.add('front');
+                    card.querySelector('input').value = card.dataset.kanji;
+                }
+            });
+        }
+
+        function initializeCards() {
+            kanjiList.forEach(({ kanji, meaning }) => createCard(kanji, meaning));
+            updateFolderList();
+        }
+
+        window.onload = initializeCards;
+    </script>
+</body>
+</html>
